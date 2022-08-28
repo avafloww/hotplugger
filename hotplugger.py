@@ -9,10 +9,19 @@ import time
 import pprint
 from pathlib import Path
 from qemu import *
+import usb.core
+import usb.backend.libusb1 as libusb1
 
 configFilename = Path(__file__).parent / "config.yaml"
 tmpFolderPath = Path(__file__).parent / "tmp"
 
+def show_devices():
+	backend = libusb1.get_backend()
+	if backend is not None:
+		devices = usb.core.find(find_all=True, backend=backend)
+		return [f"Bus {dev.bus} Addr {dev.address} Port {dev.port_number}" for dev in devices]
+	else:
+		print("Error: libusb1 is not available")
 
 def printp(dict):
 	pprint.pprint(dict, width=1)
@@ -91,21 +100,19 @@ def plug():
 			print(metadata)
 
 		print(f"Connecting to QEMU at {metadata['SOCKET']}...")
-		with QEMU(metadata["SOCKET"]) as qemu:
-			usbhost = qemu.hmp("info usbhost")
-		print(usbhost)
 
 		hostport = 0
 		hostaddr = metadata['DEVNUM'].lstrip('0')
 		hostbus = metadata['BUSNUM'].lstrip('0')
 		print(f"Looking for USB Bus: {hostbus}, Addr {hostaddr} ...")
 
-		for line in usbhost.splitlines():
+		for line in show_devices():
 			if line.find(f"Bus {hostbus}") >= 0:
 				if line.find(f"Addr {hostaddr}") >= 0:
 					print('FOUND IN', line)
-					hostport_search = re.search(".*Port.*?([\d\.]*),", line, re.IGNORECASE)
-					hostport = hostport_search.group(1)
+					hostport_search = re.search("Port ([\d\.]*)", line, re.IGNORECASE)
+					if hostport_search is not None:
+						hostport = hostport_search.group(1)
 					break
 		print(f"Found USB Bus: {hostbus}, Addr {hostaddr}, Port {hostport}")
 
