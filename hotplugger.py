@@ -17,9 +17,17 @@ tmpFolderPath = Path(__file__).parent / "tmp"
 
 def show_devices():
 	backend = libusb1.get_backend()
-	if backend is not None:
+        if backend is not None:
 		devices = usb.core.find(find_all=True, backend=backend)
-		return [f"Bus {dev.bus} Addr {dev.address} Port {dev.port_number}" for dev in devices]
+		device_list = []
+		for dev in devices:
+			port = str(dev.port_number)
+			next = dev.parent
+			while next is not None and next.port_number > 0:
+				port = f"{next.port_number}.{port}"
+				next = next.parent
+			device_list.append(f"Bus {dev.bus} Addr {dev.address} Port {port}")
+		return device_list
 	else:
 		print("Error: libusb1 is not available")
 
