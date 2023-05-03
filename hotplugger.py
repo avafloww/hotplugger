@@ -17,7 +17,7 @@ tmpFolderPath = Path(__file__).parent / "tmp"
 
 def show_devices():
 	backend = libusb1.get_backend()
-        if backend is not None:
+	if backend is not None:
 		devices = usb.core.find(find_all=True, backend=backend)
 		device_list = []
 		for dev in devices:
